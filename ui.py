@@ -78,7 +78,7 @@ class PackManagerUI(tk.Tk):
             "Dispersion": 30,
             "Price/Player": 30,
             "Total Price": 30,
-            "Pack List": 500
+            "Pack List": 700
         }
         tree = ttk.Treeview(result_window, columns=columns, show="headings", height=top_n)
         for col in columns:
