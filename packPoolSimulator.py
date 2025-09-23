@@ -39,7 +39,9 @@ def simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player):
         if total_price <= max_packs_price:
             price_per_player = total_price / num_players
             distribution = {pack['name']: count for pack, count in zip(packs, counts) if count > 0}
-            valid_distributions.append({'distribution': distribution, 'price_per_player': price_per_player})
+            valid_distributions.append({'distribution': distribution,
+                                        'price_per_player': price_per_player,
+                                        'total_price': total_price})
 
     valid_distributions = score_pack_diversity(valid_distributions)
     valid_distributions = score_pack_distribution(valid_distributions)
