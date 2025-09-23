@@ -44,10 +44,10 @@ def simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player):
                                         'total_price': total_price})
 
     valid_distributions = score_pack_diversity(valid_distributions)
-    valid_distributions = score_pack_distribution(valid_distributions)
+    valid_distributions = score_pack_dispersion(valid_distributions)
     valid_distributions = sorted(
         valid_distributions,
-        key=lambda d: (d['diversity_score'], d['distribution_score'], d['price_per_player']),
+        key=lambda d: (d['diversity_score'], d['dispersion_score'], d['price_per_player']),
         reverse=True
     )
     return valid_distributions
@@ -63,19 +63,19 @@ def score_pack_diversity(distributions):
         dist['diversity_score'] = num_types
     return distributions
 
-def score_pack_distribution(distribution):
+def score_pack_dispersion(distribution):
     """
-    Adds a 'distribution_score' key to each distribution dict. The score is based on:
+    Adds a 'dispersion_score' key to each distribution dict. The score is based on:
     - Evenness of distribution (more even is better)
     """
     for dist in distribution:
         counts = list(dist['distribution'].values())
         if len(counts) == 0:
-            dist['distribution_score'] = 0
+            dist['dispersion_score'] = 0
             continue
         mean = sum(counts) / len(counts)
         variance = sum((x - mean) ** 2 for x in counts) / len(counts)
-        dist['distribution_score'] = 1 / (1 + variance) # Higher score for lower variance
+        dist['dispersion_score'] = 1 / (1 + variance) * 100 # Higher score for lower variance
     return distribution
 
 if __name__ == "__main__":  
