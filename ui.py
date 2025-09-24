@@ -88,11 +88,12 @@ class PackManagerUI(tk.Tk):
         tree.pack(fill="both", expand=True, padx=10, pady=10)
 
         for entry in result[:top_n]:
+            pack_list = ", ".join([f"{pack['name']} (x{pack['quantity']})" for pack in entry['distribution']])
             price_per_player = f"{entry.get('price_per_player', 0):.2f}"
             total_price = f"{entry.get('total_price', 0):.2f}"
             diversity = f"{entry.get('diversity_score', 0):.2f}"
             dispersion = f"{entry.get('dispersion_score', 0):.2f}"
-            tree.insert("", "end", values=(diversity, dispersion, price_per_player, total_price, "pack_list"))
+            tree.insert("", "end", values=(diversity, dispersion, price_per_player, total_price, pack_list))
 
         tk.Button(result_window, text="Close", command=result_window.destroy).pack(pady=5)
     
@@ -141,13 +142,12 @@ class PackManagerUI(tk.Tk):
             result = packPoolSimulator.simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player)
         except Exception as e:
             messagebox.showerror("Simulation Error", str(e))
-            return
-        
+            return    
         print("Simulation complete.")
         print("Showing results...") 
         for element in result[:5]:
             print(element)
-        self.show_pack_simulation_results_window(result, 5)
+        self.show_pack_simulation_results_window(result, 10)
         
 
 if __name__ == "__main__":

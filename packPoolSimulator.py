@@ -38,7 +38,9 @@ def simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player):
         total_price = sum(count * pack['price'] for count, pack in zip(counts, packs))
         if total_price <= max_packs_price:
             price_per_player = total_price / num_players
-            distribution = {pack['name']: count for pack, count in zip(packs, counts) if count > 0}
+            distribution = [{'name': pack['name'],
+                             'price': pack['price'],
+                             'quantity': count} for pack, count in zip(packs, counts) if count > 0]
             valid_distributions.append({'distribution': distribution,
                                         'price_per_player': price_per_player,
                                         'total_price': total_price})
@@ -58,7 +60,7 @@ def score_pack_diversity(distributions):
     - Number of different pack types included (more is better)
     """
     for dist in distributions:
-        counts = list(dist['distribution'].values())
+        counts = [pack['quantity'] for pack in dist['distribution']]
         num_types = len(counts)
         dist['diversity_score'] = num_types
     return distributions
@@ -69,7 +71,7 @@ def score_pack_dispersion(distribution):
     - Evenness of distribution (more even is better)
     """
     for dist in distribution:
-        counts = list(dist['distribution'].values())
+        counts = [pack['quantity'] for pack in dist['distribution']]
         if len(counts) == 0:
             dist['dispersion_score'] = 0
             continue
