@@ -1,6 +1,6 @@
 import itertools
 
-def simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player):
+def simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player, optimizations=None):
     """
     packs: list of dicts, each with 'name', 'price', and 'quantity' keys
     entry_fee: int or float, fee per player
@@ -10,6 +10,13 @@ def simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player):
     total_packs_needed = num_players * packs_per_player
     max_packs_price = entry_fee * num_players
     
+    #------------------ Apply Optimisation ------------------#
+    if 'only_one_identical_pack_per_player' in optimizations:
+        for pack in packs:
+            if pack['quantity'] > num_players:
+                pack['quantity'] = num_players
+
+    #------------------ Preliminary checks ------------------#
     if sum(pack['quantity'] for pack in packs) < total_packs_needed:
         raise ValueError("Not enough packs available for the draft.")
     
@@ -28,6 +35,8 @@ def simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player):
         min_price_per_player = min_price_packs / num_players
         raise ValueError(f"Entry fee is too low to cover the minimum possible pack prices. Minimum required: {min_price_per_player:.2f} per player.")
    
+   
+    #------------------ Generate valid distributions ------------------#
     valid_distributions = []
     # Generate all possible combinations of packs to distribute
     # Each distribution is a list of pack counts, one per pack type, summing to total_packs_needed
@@ -108,11 +117,12 @@ if __name__ == "__main__":
              {'name': 'AetherDrift', 'price': 7.5, 'quantity': 36},
              {'name': 'Edge of Eternities', 'price': 9.5, 'quantity': 36}]
 
+    optimizations = ['only_one_identical_pack_per_player']
     entry_fee = 19
     num_players = 10
     packs_per_player = 2
 
-    result = simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player)
+    result = simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player, optimizations)
     print(f"Found {len(result)} valid distributions.")
     top_20 = result[:20]
     for dist in top_20:
