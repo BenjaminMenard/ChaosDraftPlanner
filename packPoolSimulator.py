@@ -82,18 +82,31 @@ def score_pack_dispersion(distribution):
 
 if __name__ == "__main__":  
     # Example usage:
-    packs = [
-        {'name': 'Edge of Eternities',          'price': 5, 'quantity': 8},
-        {'name': 'Tarkir: Dragonstorm',         'price': 7, 'quantity': 8},
-        {'name': 'Aetherdrift',                 'price': 14, 'quantity': 8},
-        {'name': 'Mystery Booster',             'price': 10, 'quantity': 8},
-        {'name': 'Modern Horizons 2',           'price': 12, 'quantity': 8},
-        {'name': 'Innistrad: Midnight Hunt',    'price': 8, 'quantity': 8},
-        {'name': 'Innistrad: Crimson Vow',      'price': 9, 'quantity': 8},
-        {'name': 'Strixhaven: School of Mages', 'price': 11, 'quantity': 8},
-        {'name': 'Kaldheim',                    'price': 10, 'quantity': 8},
-        {'name': "Adventures in the Forgotten Realms", 'price': 13, 'quantity': 8},
-    ]
+    packs = [{'name': 'Ixalan', 'price': 8.99, 'quantity': 32},
+             {'name': 'Throne of Eldraine', 'price': 7.75, 'quantity': 3},
+             {'name': 'New Capena', 'price': 9.25, 'quantity': 15},
+             {'name': 'Theros Beyond Death', 'price': 7.75, 'quantity': 20},
+             {'name': 'Dark Ascension', 'price': 16.99, 'quantity': 6},
+             {'name': 'Rival of Ixalan', 'price': 8.99, 'quantity': 30},
+             {'name': 'Dominaria Remaster', 'price': 10.25, 'quantity': 15},
+             {'name': 'Murder at Karlov Manor', 'price': 7.75, 'quantity': 36},
+             {'name': 'Battle for Zendakar', 'price': 12.25, 'quantity': 20},
+             {'name': 'Master 25', 'price': 19.5, 'quantity': 6}, 
+             {'name': 'Outlaw at tunder Junction', 'price': 8.25, 'quantity': 25},
+             {'name': 'Core Set 2020', 'price': 7.25, 'quantity': 18},
+             {'name': 'Guild of Ravenika', 'price': 8.75, 'quantity': 30}, 
+             {'name': 'Ravnica Allegiance', 'price': 6.99, 'quantity': 36},
+             {'name': 'Ravnica Remaster', 'price': 9.99, 'quantity': 32},
+             {'name': 'Mystery Booster', 'price': 19.99, 'quantity': 1},
+             {'name': 'Phyrixa all Will be One', 'price': 9.99, 'quantity': 16},
+             {'name': 'Amonkhet', 'price': 16.99, 'quantity': 20},
+             {'name': 'Strixhaven', 'price': 8.75, 'quantity': 20},
+             {'name': 'Midnigth Hunt', 'price': 8.75, 'quantity': 25},
+             {'name': 'Bloomburrow', 'price': 8.25, 'quantity': 25},
+             {'name': 'Foundation', 'price': 9.75, 'quantity': 5},
+             {'name': 'Inistrad Remaster', 'price': 9.5, 'quantity': 36},
+             {'name': 'AetherDrift', 'price': 7.5, 'quantity': 36},
+             {'name': 'Edge of Eternities', 'price': 9.5, 'quantity': 36}]
 
     entry_fee = 19
     num_players = 10
