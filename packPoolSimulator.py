@@ -15,6 +15,12 @@ def simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player, 
         for pack in packs:
             if pack['quantity'] > num_players:
                 pack['quantity'] = num_players
+                
+    if 'max_x_packs_of_same_type' in optimizations:
+        max_x = optimizations['max_x_packs_of_same_type']
+        for pack in packs:
+            if pack['quantity'] > max_x:
+                pack['quantity'] = max_x
 
     #------------------ Preliminary checks ------------------#
     if sum(pack['quantity'] for pack in packs) < total_packs_needed:
@@ -117,7 +123,11 @@ if __name__ == "__main__":
              {'name': 'AetherDrift', 'price': 7.5, 'quantity': 36},
              {'name': 'Edge of Eternities', 'price': 9.5, 'quantity': 36}]
 
-    optimizations = ['only_one_identical_pack_per_player']
+    optimizations = {
+        'only_one_identical_pack_per_player': None,
+        'max_x_packs_of_same_type': 3,
+    }
+    
     entry_fee = 19
     num_players = 10
     packs_per_player = 2
