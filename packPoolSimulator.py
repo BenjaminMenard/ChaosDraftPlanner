@@ -44,10 +44,23 @@ def simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player, 
    
     #------------------ Generate valid distributions ------------------#
     valid_distributions = []
-    # Generate all possible combinations of packs to distribute
-    # Each distribution is a list of pack counts, one per pack type, summing to total_packs_needed
-    # Each pack count cannot exceed the available quantity for that pack
-    for counts in itertools.product(*(range(min(pack['quantity'], total_packs_needed) + 1) for pack in packs)):
+    
+    # Generator function to yield valid combinations
+    def generate_combinations(packs, total_packs_needed):
+        def backtrack(start, remaining, current):
+            if remaining == 0:
+                yield tuple(current)
+                return
+            for i in range(start, len(packs)):
+                for count in range(min(packs[i]['quantity'], remaining) + 1):
+                    current[i] = count
+                    yield from backtrack(i + 1, remaining - count, current)
+                    current[i] = 0  # Reset for the next iteration
+
+        yield from backtrack(0, total_packs_needed, [0] * len(packs))
+
+    # Use the generator to find valid distributions
+    for counts in generate_combinations(packs, total_packs_needed):
         if sum(counts) != total_packs_needed:
             continue
         total_price = sum(count * pack['price'] for count, pack in zip(counts, packs))
