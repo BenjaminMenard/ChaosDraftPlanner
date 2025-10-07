@@ -139,7 +139,10 @@ class PackManagerUI(tk.Tk):
 
         print("Simulation Started.")
         try:
-            result = packPoolSimulator.simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player)
+            result = packPoolSimulator.simulate_pack_distribution(packs, 
+                                                                  entry_fee, 
+                                                                  num_players, 
+                                                                  packs_per_player)
         except Exception as e:
             messagebox.showerror("Simulation Error", str(e))
             return    

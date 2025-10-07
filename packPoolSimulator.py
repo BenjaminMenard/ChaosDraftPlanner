@@ -1,83 +1,84 @@
 import itertools
 
-def simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player, optimizations=None):
-    """
-    packs: list of dicts, each with 'name', 'price', and 'quantity' keys
-    entry_fee: int or float, fee per player
-    num_players: int
-    packs_per_player: int
-    """
-    total_packs_needed = num_players * packs_per_player
-    max_packs_price = entry_fee * num_players
-    
-    #------------------ Apply Optimisation ------------------#
-    if 'only_one_identical_pack_per_player' in optimizations:
-        for pack in packs:
-            if pack['quantity'] > num_players:
-                pack['quantity'] = num_players
-                
-    if 'max_x_packs_of_same_type' in optimizations:
-        max_x = optimizations['max_x_packs_of_same_type']
-        for pack in packs:
-            if pack['quantity'] > max_x:
-                pack['quantity'] = max_x
-
+def simulate_pack_distribution(packs, num_packs_needed, max_total_price):
     #------------------ Preliminary checks ------------------#
-    if sum(pack['quantity'] for pack in packs) < total_packs_needed:
-        raise ValueError("Not enough packs available for the draft.")
-    
-    # Check if the max_packs_price is smaller than the total price of the cheapest packs
-    sorted_packs_by_price = sorted(packs, key=lambda p: p['price'])
-    # Select the cheapest packs, taking as many as possible from each until reaching total_packs_needed
-    min_price_packs = 0
-    packs_needed = total_packs_needed
-    for pack in sorted_packs_by_price:
-        if packs_needed <= 0:
-            break
-        take = min(pack['quantity'], packs_needed)
-        min_price_packs += pack['price'] * take
-        packs_needed -= take
-    if max_packs_price < min_price_packs:
-        min_price_per_player = min_price_packs / num_players
+    if check_enough_packs(packs, num_packs_needed) is False:
+        available_packs = sum(pack['quantity'] for pack in packs)
+        raise ValueError(f"Not enough packs available for the draft. Available: {available_packs}, Required: {num_packs_needed}.")
+    if check_min_price(packs, num_packs_needed, max_total_price) is False:
+        min_price_per_player = sum(sorted(pack['price'] for pack in packs)[:num_packs_needed])
         raise ValueError(f"Entry fee is too low to cover the minimum possible pack prices. Minimum required: {min_price_per_player:.2f} per player.")
-   
-   
+    
+    #------------------ Limit Packs List ------------------#
+    original_num_packs_needed = num_packs_needed
+    original_max_total_price = max_total_price
+    max_packs_quantity_hard_limit = 3
+    max_packs_quantity = 1
+    
+    optimizations_done = False
+    packs,saved_packs = use_one_of_each_pack(packs, num_packs_needed)
+    num_packs_needed = num_packs_needed - sum(sp['quantity'] for sp in saved_packs)
+    max_total_price = original_max_total_price - sum(sp['price'] * sp['quantity'] for sp in saved_packs)
+    while optimizations_done is False:
+        packs = set_max_packs_quantity_per_type(packs, max_packs_quantity)
+        while check_min_price(packs, num_packs_needed, max_total_price) is False:
+            saved_packs,removed_pack = remove_most_expensive(saved_packs)
+            max_total_price += removed_pack['price']
+            num_packs_needed += 1
+            if check_enough_packs(packs, num_packs_needed) is False:
+                max_packs_quantity += 1
+                if max_packs_quantity > max_packs_quantity_hard_limit:
+                    raise ValueError("Cannot find a valid distribution with the given constraints.")
+            else:
+                optimizations_done = True
+    #------------------ Remove too expensive packs ------------------#           
+    
+                
     #------------------ Generate valid distributions ------------------#
     valid_distributions = []
     
     # Generator function to yield valid combinations
-    def generate_combinations(packs, total_packs_needed):
-        def backtrack(start, remaining, current):
-            if remaining == 0:
-                yield tuple(current)
-                return
-            for i in range(start, len(packs)):
-                for count in range(min(packs[i]['quantity'], remaining) + 1):
-                    current[i] = count
-                    yield from backtrack(i + 1, remaining - count, current)
-                    current[i] = 0  # Reset for the next iteration
+    def generate_combinations(packs, neededPacks):
+        # Extract quantity limits from packs
+        quantities = [pack['quantity'] for pack in packs]
+        # Generate all possible distributions
+        distributions = []
+        if neededPacks == 0:
+            distributions.append((0,) * len(packs))
+            return distributions
+        for distribution in itertools.product(*(range(q + 1) for q in quantities)):
+            if sum(distribution) == neededPacks:
+                distributions.append(distribution)
 
-        yield from backtrack(0, total_packs_needed, [0] * len(packs))
-
+        return distributions
     # Use the generator to find valid distributions
-    for counts in generate_combinations(packs, total_packs_needed):
-        if sum(counts) != total_packs_needed:
-            continue
+    for counts in generate_combinations(packs, num_packs_needed):
         total_price = sum(count * pack['price'] for count, pack in zip(counts, packs))
-        if total_price <= max_packs_price:
-            price_per_player = total_price / num_players
+        if total_price <= max_total_price:
             distribution = [{'name': pack['name'],
                              'price': pack['price'],
                              'quantity': count} for pack, count in zip(packs, counts) if count > 0]
             valid_distributions.append({'distribution': distribution,
-                                        'price_per_player': price_per_player,
                                         'total_price': total_price})
+            
+    # Add back any saved packs
+    for dist in valid_distributions:
+        for sp in saved_packs:
+            found = False
+            for d in dist['distribution']:
+                if d['name'] == sp['name']:
+                    d['quantity'] += sp['quantity']
+                    found = True
+                    break
+            if not found:
+                dist['distribution'].append(sp)
+        dist['total_price'] += sum(sp['price'] * sp['quantity'] for sp in saved_packs)
 
     valid_distributions = score_pack_diversity(valid_distributions)
     valid_distributions = score_pack_dispersion(valid_distributions)
     valid_distributions = sorted(
         valid_distributions,
-        key=lambda d: (d['diversity_score'], d['dispersion_score'], d['price_per_player']),
+        key=lambda d: (d['diversity_score'], d['dispersion_score'], d['total_price']),
         reverse=True
     )
     return valid_distributions
@@ -108,44 +109,87 @@ def score_pack_dispersion(distribution):
         dist['dispersion_score'] = 1 / (1 + variance) * 100 # Higher score for lower variance
     return distribution
 
+def check_enough_packs(packs, num_packs_needed):
+    total_available = sum(pack['quantity'] for pack in packs)
+    return total_available >= num_packs_needed
+
+def check_min_price(packs, num_packs_needed, max_total_price):
+    sorted_packs = sorted(packs, key=lambda p: p['price'])
+    total_price = 0
+    packs_needed = num_packs_needed
+    for pack in sorted_packs:
+        if packs_needed <= 0:
+            break
+        take = min(pack['quantity'], packs_needed)
+        total_price += pack['price'] * take
+        packs_needed -= take
+    return total_price <= max_total_price
+
+def use_one_of_each_pack(packs, num_packs_needed):
+    saved_packs = []
+    while num_packs_needed >= len(packs):
+        for pack in packs:
+            num_packs_needed -= 1
+            pack['quantity'] -= 1
+            # Check if the pack already exists in saved_packs
+            existing_pack = next((item for item in saved_packs if item['name'] == pack['name']), None)
+            if existing_pack:
+                existing_pack['quantity'] += 1  # Increment quantity if exists
+            else:
+                saved_packs.append({'name': pack['name'], 'price': pack['price'], 'quantity': 1})
+        packs = list(filter(lambda p: p['quantity'] != 0, packs))
+    return packs, saved_packs
+            
+def set_max_packs_quantity_per_type(packs, max_quantity):
+    for pack in packs:
+        if pack['quantity'] > max_quantity:
+            pack['quantity'] = max_quantity
+    return packs
+
+def remove_most_expensive(packs):
+    if not packs:
+        return packs
+    most_expensive = max(packs, key=lambda p: p['price'])
+    if most_expensive['quantity'] > 1:
+        most_expensive['quantity'] -= 1
+    else:
+        packs.remove(most_expensive)
+    return packs, most_expensive
+
 if __name__ == "__main__":  
     # Example usage:
-    packs = [{'name': 'Ixalan', 'price': 8.99, 'quantity': 32},
-             {'name': 'Throne of Eldraine', 'price': 7.75, 'quantity': 3},
-             {'name': 'New Capena', 'price': 9.25, 'quantity': 15},
-             {'name': 'Theros Beyond Death', 'price': 7.75, 'quantity': 20},
-             {'name': 'Dark Ascension', 'price': 16.99, 'quantity': 6},
-             {'name': 'Rival of Ixalan', 'price': 8.99, 'quantity': 30},
-             {'name': 'Dominaria Remaster', 'price': 10.25, 'quantity': 15},
-             {'name': 'Murder at Karlov Manor', 'price': 7.75, 'quantity': 36},
-             {'name': 'Battle for Zendakar', 'price': 12.25, 'quantity': 20},
-             {'name': 'Master 25', 'price': 19.5, 'quantity': 6}, 
-             {'name': 'Outlaw at tunder Junction', 'price': 8.25, 'quantity': 25},
-             {'name': 'Core Set 2020', 'price': 7.25, 'quantity': 18},
-             {'name': 'Guild of Ravenika', 'price': 8.75, 'quantity': 30}, 
-             {'name': 'Ravnica Allegiance', 'price': 6.99, 'quantity': 36},
-             {'name': 'Ravnica Remaster', 'price': 9.99, 'quantity': 32},
-             {'name': 'Mystery Booster', 'price': 19.99, 'quantity': 1},
-             {'name': 'Phyrixa all Will be One', 'price': 9.99, 'quantity': 16},
-             {'name': 'Amonkhet', 'price': 16.99, 'quantity': 20},
-             {'name': 'Strixhaven', 'price': 8.75, 'quantity': 20},
-             {'name': 'Midnigth Hunt', 'price': 8.75, 'quantity': 25},
-             {'name': 'Bloomburrow', 'price': 8.25, 'quantity': 25},
-             {'name': 'Foundation', 'price': 9.75, 'quantity': 5},
-             {'name': 'Inistrad Remaster', 'price': 9.5, 'quantity': 36},
-             {'name': 'AetherDrift', 'price': 7.5, 'quantity': 36},
-             {'name': 'Edge of Eternities', 'price': 9.5, 'quantity': 36}]
-
-    optimizations = {
-        'only_one_identical_pack_per_player': None,
-        'max_x_packs_of_same_type': 3,
-    }
     
-    entry_fee = 19
-    num_players = 10
-    packs_per_player = 2
+    packs = [
+        {'name': 'Ixalan', 'price': 8.99, 'quantity': 32},
+        {'name': 'New Capena', 'price': 9.25, 'quantity': 15},
+        {'name': 'Theros Beyond Death', 'price': 7.75, 'quantity': 20},
+        {'name': 'Dark Ascension', 'price': 16.99, 'quantity': 6},
+        {'name': 'Rival of Ixalan', 'price': 8.99, 'quantity': 30},
+        {'name': 'Dominaria Remaster', 'price': 10.25, 'quantity': 3},
+        {'name': 'Murder at Karlov Manor', 'price': 7.75, 'quantity': 36},
+        {'name': 'Battle for Zendikar', 'price': 12.25, 'quantity': 20},
+        {'name': 'Outlaw at Thunder Junction', 'price': 8.25, 'quantity': 25},
+        {'name': 'Core Set 2020', 'price': 7.25, 'quantity': 18},
+        {'name': 'Guilds of Ravnica', 'price': 8.75, 'quantity': 30},
+        {'name': 'Ravnica Remaster', 'price': 9.99, 'quantity': 32},
+        {'name': 'Phyrexia All Will Be One', 'price': 9.99, 'quantity': 6},
+        {'name': 'Amonkhet', 'price': 16.99, 'quantity': 20},
+        {'name': 'Strixhaven', 'price': 8.75, 'quantity': 20},
+        {'name': 'Midnight Hunt', 'price': 8.75, 'quantity': 25},
+        {'name': 'Bloomburrow', 'price': 8.25, 'quantity': 25},
+        {'name': 'Innistrad Remaster', 'price': 9.5, 'quantity': 36},
+        {'name': 'AetherDrift', 'price': 7.5, 'quantity': 36},
+        {'name': 'Edge of Eternities', 'price': 9.5, 'quantity': 36},
+        ]
 
-    result = simulate_pack_distribution(packs, entry_fee, num_players, packs_per_player, optimizations)
+    entry_fee = 19
+    num_players = 11
+    packs_per_player = 2
+    
+    max_total_price = entry_fee * num_players
+    num_total_packs = num_players * packs_per_player
+
+    result = simulate_pack_distribution(packs, num_total_packs, max_total_price)
     print(f"Found {len(result)} valid distributions.")
     top_20 = result[:20]
     for dist in top_20:
