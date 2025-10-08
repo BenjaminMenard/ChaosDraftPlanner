@@ -10,15 +10,13 @@ def simulate_pack_distribution(packs, num_packs_needed, max_total_price):
         raise ValueError(f"Entry fee is too low to cover the minimum possible pack prices. Minimum required: {min_price_per_player:.2f} per player.")
     
     #------------------ Limit Packs List ------------------#
-    original_num_packs_needed = num_packs_needed
-    original_max_total_price = max_total_price
-    max_packs_quantity_hard_limit = 3
+    max_packs_quantity_hard_limit = 5
     max_packs_quantity = 1
     
     optimizations_done = False
     packs,saved_packs = use_one_of_each_pack(packs, num_packs_needed)
     num_packs_needed = num_packs_needed - sum(sp['quantity'] for sp in saved_packs)
-    max_total_price = original_max_total_price - sum(sp['price'] * sp['quantity'] for sp in saved_packs)
+    max_total_price = max_total_price - sum(sp['price'] * sp['quantity'] for sp in saved_packs)
     while optimizations_done is False:
         packs = set_max_packs_quantity_per_type(packs, max_packs_quantity)
         while check_min_price(packs, num_packs_needed, max_total_price) is False:
@@ -31,6 +29,7 @@ def simulate_pack_distribution(packs, num_packs_needed, max_total_price):
                     raise ValueError("Cannot find a valid distribution with the given constraints.")
             else:
                 optimizations_done = True
+        optimizations_done = True
     #------------------ Remove too expensive packs ------------------#           
     
                 
