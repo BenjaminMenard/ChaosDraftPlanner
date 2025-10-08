@@ -191,6 +191,11 @@ if __name__ == "__main__":
 
     result = simulate_pack_distribution(packs, num_total_packs, max_total_price)
     print(f"Found {len(result)} valid distributions.")
-    top_20 = result[:20]
-    for dist in top_20:
-        print(dist)
+    top_3 = result[:3]
+    for entry in top_3:
+        pack_list = ", ".join([f"{pack['name']} (x{pack['quantity']})" for pack in entry['distribution']])
+        price_per_player = f"{entry.get('total_price', 0)/num_players:.2f}"
+        total_price = f"{entry.get('total_price', 0):.2f}"
+        diversity = f"{entry.get('diversity_score', 0):.2f}"
+        dispersion = f"{entry.get('dispersion_score', 0):.2f}"
+        print(f"Diversity: {diversity}, Dispersion: {dispersion}, Price per Player: {price_per_player}, Total Price: {total_price}, Packs: {pack_list}")
