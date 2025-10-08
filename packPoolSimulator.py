@@ -31,8 +31,44 @@ def simulate_pack_distribution(packs, num_packs_needed, max_total_price):
                 optimizations_done = True
         optimizations_done = True
     #------------------ Remove too expensive packs ------------------#           
+    sorted_packs = sorted(packs, key=lambda p: p['price'])
+    list_of_packs = []
+    # Create a flat list of packs based on their quantities
+    for pack in sorted_packs:
+        for i in range(pack['quantity']):
+            list_of_packs.append({'name': pack['name'], 'price': pack['price']})
     
-                
+    check_done = False
+    iteration = 1
+    while check_done is False:
+        distribution_candidates = []
+        last_packs = list_of_packs[-iteration:]
+        last_prices = [pack['price'] for pack in last_packs]
+        all_equal = all(price == last_prices[0] for price in last_prices)
+        if all_equal is False:
+            break
+        distribution_candidates.extend(list_of_packs[:num_packs_needed-iteration])
+        distribution_candidates.extend(list_of_packs[-iteration:])
+        if sum(pack['price'] for pack in distribution_candidates) > max_total_price:
+            list_of_packs.pop()
+        else:
+            iteration += 1
+            
+    # Rebuild packs with quantities
+    packs = []
+    for pack in list_of_packs:
+        existing_pack = next((p for p in packs if p['name'] == pack['name']), None)
+        if existing_pack:
+            existing_pack['quantity'] += 1
+        else:
+            packs.append({'name': pack['name'], 'price': pack['price'], 'quantity': 1})
+    
+    # Ensure the expensive packs with same price have same quantity
+    for pack in packs:
+        if pack['price'] == packs[-1]['price']:
+            if pack['quantity'] > packs[-1]['quantity']:
+                pack['quantity'] = packs[-1]['quantity']  
+                     
     #------------------ Generate valid distributions ------------------#
     valid_distributions = []
     
